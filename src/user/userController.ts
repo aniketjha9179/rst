@@ -1,45 +1,61 @@
 import { Request, Response, NextFunction } from "express";
 import createHttpError from "http-errors";
 import userModal from "./userModal";
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from "bcrypt";
 import { sign } from "jsonwebtoken";
 import { config } from "../config/config";
+import { User } from "./userTypes";
 
 const createUser = async (req: Request, res: Response, next: NextFunction) => {
   const { name, email, password } = req.body;
-  // validation
 
+  // Validation
   if (!name || !email || !password) {
-    const error = createHttpError(400, "All fields are requied");
-    return next(error);
-  }
-  // database call
-  const user = await userModal.findOne({ email });
-  if (user) {
-    const error = createHttpError(400, "User already exists with this email");
+    const error = createHttpError(400, "All fields are required");
     return next(error);
   }
 
-//   password hashing
-const hashedPassword= await bcrypt.hash(password,10)
-const newUser=  await userModal.create({
-    name,
-    email,
-    password:hashedPassword,
-})
+  // Database call
+  try {
+    const user = await userModal.findOne({ email });
+    if (user) {
+      const error = createHttpError(400, "User already exists with this email");
+      return next(error);
+    }
+  } catch (error) {
+    return next(createHttpError(500, "Error while getting user"));
+  }
 
-// token Generation jwt
-const token = sign({sub:newUser._id},config.jwtSecret as string,{expiresIn:"10d",algorithm:'HS256'})
+  // Password hashing
+  let hashedPassword: string;
+  try {
+    hashedPassword = await bcrypt.hash(password, 10);
+  } catch (error) {
+    return next(createHttpError(500, "Error while hashing the password"));
+  }
 
- 
+  let newUser: User;
+  try {
+    newUser = await userModal.create({
+      name,
+      email,
+      password: hashedPassword,
+    });
+  } catch (error) {
+    return next(createHttpError(500, "Error while creating user"));
+  }
 
-
-
-
-  // process
-
-  // response
-  res.json({accessToken:token});
+  // Token generation
+  try {
+    const token = sign({ sub: newUser._id }, config.jwtSecret as string, {
+      expiresIn: "10d",
+      algorithm: "HS256",
+    });
+    // Response
+    res.json({ accessToken: token });
+  } catch (error) {
+    return next(createHttpError(500, "Error while signing the JWT token"));
+  }
 };
 
 export { createUser };
