@@ -1,6 +1,7 @@
 import createHttpError from "http-errors";
 import express from "express";
 import globaleErrorHanler from "./middlewares/globalErrorhandler";
+import userRouter from "./user/userRouter";
 
 const app = express();
 // routes
@@ -12,6 +13,9 @@ app.get("/", (req, res, next) => {
     message: "Welcome to restApi",
   });
 });
+app.use('/api/users',userRouter)
+
+
 // global error handler
 app.use(globaleErrorHanler)
 
