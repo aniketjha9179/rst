@@ -52,10 +52,15 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
       algorithm: "HS256",
     });
     // Response
-    res.json({ accessToken: token });
+    res.status(201).json({ accessToken: token });
   } catch (error) {
     return next(createHttpError(500, "Error while signing the JWT token"));
   }
 };
 
-export { createUser };
+const loginUser=async(req:Request, res:Response,next:NextFunction)=>{
+  const {email,password}=req.body
+  
+  res.json({message:'ok'})
+}
+export { createUser ,loginUser};
